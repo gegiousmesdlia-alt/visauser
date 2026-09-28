@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Track Application — U.S. Visa Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#002868;--blue2:#003a99;--red:#BF0A30;--gold:#C9A84C;--white:#fff;--offwhite:#F0F4FA;--text:#1A1A2E;--muted:#5a6480;--border:#d0d8e8;--green:#1a6b3a;--amber:#9a6b00;--serif:'Source Serif 4',Georgia,serif;--sans:'Inter',system-ui,sans-serif;--mono:'Roboto Mono',monospace;--radius:6px;--shadow:0 2px 16px rgba(0,40,104,.10)}
+body{font-family:var(--sans);color:var(--text);background:var(--offwhite);min-height:100vh}
+.gov-banner{background:#1a1a1a;color:#eee;font-size:12px;padding:5px 20px}
+nav{background:var(--blue);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff}
+.nav-brand strong{font-family:var(--serif);font-size:15px}
+.nav-back{color:rgba(255,255,255,.75);text-decoration:none;font-size:13px}
+.nav-back:hover{color:#fff}
+.lang-switch{display:flex;gap:4px;background:rgba(255,255,255,.08);border-radius:var(--radius);padding:3px;margin-left:14px}
+.lang-switch-btn{background:none;border:none;color:rgba(255,255,255,.65);font-size:11px;font-weight:700;padding:6px 9px;border-radius:4px;cursor:pointer;letter-spacing:.3px}
+.lang-switch-btn.active{background:var(--gold);color:var(--blue)}
+.lang-switch-btn:hover:not(.active){color:#fff}
+.nav-right{display:flex;align-items:center}
+
+.main{max-width:760px;margin:0 auto;padding:50px 20px 70px}
+.page-title{text-align:center;margin-bottom:36px}
+.page-title h1{font-family:var(--serif);font-size:30px;color:var(--blue);font-weight:700}
+.page-title p{color:var(--muted);font-size:14px;margin-top:8px}
+
+.search-card{background:#fff;border-radius:10px;padding:28px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:28px}
+.search-row{display:flex;gap:12px}
+.search-row input{flex:1;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:15px;letter-spacing:1px;outline:none}
+.search-row input:focus{border-color:var(--blue)}
+.search-row button{background:var(--blue);color:#fff;border:none;padding:14px 28px;border-radius:var(--radius);font-weight:600;cursor:pointer;font-size:14px;white-space:nowrap}
+.search-row button:hover{background:var(--blue2)}
+.search-hint{font-size:12px;color:var(--muted);margin-top:10px}
+
+#resultArea{display:none}
+.result-card{background:#fff;border-radius:10px;padding:32px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.result-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.result-ref{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.result-name{font-family:var(--serif);font-size:22px;color:var(--blue);font-weight:700;margin-top:4px}
+.status-pill{padding:8px 18px;border-radius:30px;font-size:13px;font-weight:700;letter-spacing:.3px}
+.status-pending_payment{background:#fff3cd;color:var(--amber)}
+.status-payment_received{background:#d4edff;color:var(--blue)}
+.status-biometric_scheduled{background:#e0d4ff;color:#5a2a9e}
+.status-under_review{background:#ffe4d4;color:#a0440a}
+.status-pending_payment_review{background:#fff0b3;color:#7a5800}
+.status-payment_confirmed{background:#d4f5dd;color:var(--green)}
+.status-payment_failed{background:#ffd4d4;color:var(--red)}
+/* BTC Payment slide-in screen */
+.btc-screen{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center}
+.btc-screen.open{display:flex;animation:fadeInBTC .25s ease}
+@keyframes fadeInBTC{from{opacity:0}to{opacity:1}}
+.btc-card{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:28px 24px 40px;animation:slideUpBTC .32s cubic-bezier(.22,1,.36,1)}
+@keyframes slideUpBTC{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.btc-handle{width:40px;height:4px;background:#e0e0e0;border-radius:4px;margin:0 auto 20px}
+.btc-title{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--blue);margin-bottom:6px}
+.btc-warning{background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#7a5800;line-height:1.55;margin-bottom:16px}
+.btc-box{background:var(--offwhite,#f5f6fa);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.btc-box-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.btc-amount-val{font-size:22px;font-weight:700;color:var(--blue);font-family:var(--mono)}
+.btc-addr{font-family:var(--mono);font-size:12px;word-break:break-all;color:var(--text);margin:6px 0 10px;line-height:1.6}
+.btc-copy-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;width:100%;transition:background .2s}
+.btc-copy-btn.copied{background:var(--green)}
+.btc-paid-btn{width:100%;padding:17px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin:16px 0 10px;transition:transform .1s,opacity .15s}
+.btc-paid-btn:active{transform:scale(.98)}
+.btc-paid-btn:disabled{background:#aaa;cursor:not-allowed}
+.btc-cancel-btn{width:100%;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:8px}
+.btc-pending-card{background:#fff9e6;border:1.5px solid #C9A84C;border-radius:14px;padding:20px;text-align:center}
+.btc-pending-title{font-size:16px;font-weight:700;color:#7a5800;margin-bottom:8px}
+.btc-pending-msg{font-size:13px;color:#7a5800;line-height:1.6}
+.status-approved{background:#d4f5dd;color:var(--green)}
+.status-denied{background:#ffd4d4;color:var(--red)}
+
+.timeline{position:relative;padding-left:36px}
+.timeline::before{content:'';position:absolute;left:11px;top:6px;bottom:6px;width:2px;background:var(--border)}
+.t-item{position:relative;padding-bottom:28px}
+.t-item:last-child{padding-bottom:0}
+.t-dot{position:absolute;left:-36px;top:0;width:24px;height:24px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.t-item.complete .t-dot{background:var(--green)}
+.t-item.active .t-dot{background:var(--blue);box-shadow:0 0 0 4px rgba(0,40,104,.15)}
+.t-title{font-size:14px;font-weight:600;color:var(--text)}
+.t-item.complete .t-title,.t-item.active .t-title{color:var(--blue)}
+.t-desc{font-size:12.5px;color:var(--muted);margin-top:3px}
+.t-date{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px}
+
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px;padding-top:24px;border-top:1px solid var(--border)}
+@media(max-width:560px){.detail-grid{grid-template-columns:1fr}.result-head{flex-direction:column}.search-row{flex-direction:column}}
+.detail-item{font-size:13px}
+.detail-item .dl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.detail-item .dv{color:var(--text);font-weight:600}
+
+.actions-row{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}
+.btn{padding:11px 22px;border-radius:var(--radius);font-weight:600;font-size:13px;text-decoration:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-outline{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
+
+.not-found{text-align:center;padding:40px 20px;color:var(--muted)}
+.not-found .icon{font-size:40px;margin-bottom:12px}
+.loading{text-align:center;padding:40px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="gov-banner">🇺🇸 <span data-i18n="gov">An official website of the United States Government</span> — U.S. Department of State</div>
+<nav>
+  <a href="index.html" class="nav-brand">
+    <svg width="32" height="32" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="48" fill="#C9A84C" opacity=".15" stroke="#C9A84C" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" font-size="30" fill="#C9A84C" font-family="serif">★</text></svg>
+    <strong>U.S. Visa Portal</strong>
+  </a>
+  <div class="nav-right">
+    <a href="index.html" class="nav-back" data-i18n="nav.back">← Back to Home</a>
+    <div class="lang-switch">
+      <button class="lang-switch-btn" data-lang="en" onclick="setLanguage('en');searchAppIfLoaded()">EN</button>
+      <button class="lang-switch-btn" data-lang="pt" onclick="setLanguage('pt');searchAppIfLoaded()">PT</button>
+      <button class="lang-switch-btn" data-lang="es" onclick="setLanguage('es');searchAppIfLoaded()">ES</button>
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">
+    <h1 data-i18n="status.title">Track Your Application</h1>
+    <p data-i18n="status.subtitle">Enter your reference number to view real-time application status.</p>
+  </div>
+
+  <div class="search-card">
+    <div class="search-row">
+      <input type="text" id="refInput" placeholder="e.g. US-2024-A1B2C3" data-i18n-placeholder="status.placeholder" maxlength="20"/>
+      <button onclick="searchApp()" data-i18n="status.trackBtn">Track Status</button>
+    </div>
+    <div class="search-hint" data-i18n="status.hint">Your reference number was provided after submitting your application.</div>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script src="i18n.js"></script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const FB = {apiKey:"AIzaSyAQbiR_7vvcUlr0nr3NKQ2csjh-iwe0rhY",authDomain:"visa-3504e.firebaseapp.com",projectId:"visa-3504e",storageBucket:"visa-3504e.firebasestorage.app",messagingSenderId:"618621727677",appId:"1:618621727677:web:72dccc703c97a5c739d8d4"};
+const app = initializeApp(FB);
+const db = getFirestore(app);
+
+// BTC payment settings — wallet address and fees loaded from Firestore settings
+let BTC_WALLET = '';
+let FEES = {B1B2:185,F1:185,H1B:190,J1:160,O1:460,L1:460};
+const settingsReady = (async function(){
+  try{
+    const [feesSnap, btcSnap] = await Promise.all([
+      getDoc(doc(db,'settings','fees')),
+      getDoc(doc(db,'settings','btc'))
+    ]);
+    if(feesSnap.exists()) FEES = { ...FEES, ...feesSnap.data() };
+    if(btcSnap.exists() && btcSnap.data().wallet) BTC_WALLET = btcSnap.data().wallet;
+  } catch(e){ console.warn('Could not load payment settings:', e); }
+})();
+
+let currentResultData = null;
+
+function getStatusLabels(){
+  return TRANSLATIONS[getCurrentLang()].status.statusLabels;
+}
+
+// Combines feePaid + biometricScheduled + admin reviewStatus into a single state,
+// since payment and biometric verification can now happen in any order.
+function computeCombinedStatus(d){
+  const paid = !!d.feePaid;
+  const bio = !!d.biometricScheduled;
+  const paymentStatus = d.paymentStatus || '';
+  if(paymentStatus === 'pending_review') return 'pending_payment_review';
+  if(paymentStatus === 'failed') return 'payment_failed';
+  if(!paid && !bio) return 'pending_both';
+  if(paid && !bio) return 'paid_pending_bio';
+  if(!paid && bio) return 'bio_pending_paid';
+  const review = d.reviewStatus || 'pending';
+  if(review==='approved') return 'approved';
+  if(review==='denied') return 'denied';
+  return 'under_review';
+}
+
+const STATUS_BADGE_CLASS = {
+  pending_both:'status-pending_payment',
+  paid_pending_bio:'status-payment_received',
+  bio_pending_paid:'status-biometric_scheduled',
+  under_review:'status-under_review',
+  approved:'status-approved',
+  denied:'status-denied',
+  pending_payment_review:'status-pending_payment_review',
+  payment_confirmed:'status-payment_confirmed',
+  payment_failed:'status-payment_failed'
+};
+
+window.searchApp = async function(){
+  const ref = document.getElementById('refInput').value.trim().toUpperCase();
+  const resultArea = document.getElementById('resultArea');
+  const L = getCurrentLang();
+  if(!ref){ document.getElementById('refInput').focus(); return; }
+  resultArea.style.display='block';
+  resultArea.innerHTML = '<div class="loading">⏳ '+t('status.trackBtn',L)+'...</div>';
+  try{
+    const snap = await getDoc(doc(db,'visa_applications',ref));
+    if(!snap.exists()){
+      resultArea.innerHTML = `<div class="result-card"><div class="not-found"><div class="icon">🔍</div><strong>${t('status.notFound',L)}</strong><p style="margin-top:6px;font-size:13px">${t('status.notFoundD',L)}</p></div></div>`;
+      return;
+    }
+    renderResult(snap.data());
+  } catch(e){
+    resultArea.innerHTML = `<div class="result-card"><div class="not-found"><div class="icon">⚠️</div><strong>${t('status.error',L)}</strong><p style="margin-top:6px;font-size:13px">${t('status.errorD',L)}</p></div></div>`;
+  }
+};
+
+// Re-run search with new language after a switch, if a result is already showing
+window.searchAppIfLoaded = function(){
+  if(document.getElementById('refInput').value.trim()) searchApp();
+};
+
+function renderResult(d){
+  const L = getCurrentLang();
+  const STATUS_LABELS = getStatusLabels();
+  currentResultData = d;
+  const combined = computeCombinedStatus(d);
+
+  let message = '';
+  let actionButtons = '';
+  switch(combined){
+    case 'pending_both':
+      message = t('status.msgPendingBoth',L);
+      actionButtons = `<button class="btn btn-blue" onclick="openBtcScreen()">₿ ${t('status.payNowBtn',L)}</button>
+        <a href="biometric.html?ref=${d.ref}" class="btn btn-outline">${t('status.goBiometricBtn',L)}</a>`;
+      break;
+    case 'paid_pending_bio':
+      message = t('status.msgPaidPendingBio',L);
+      actionButtons = `<a href="biometric.html?ref=${d.ref}" class="btn btn-blue">${t('status.goBiometricBtn',L)}</a>`;
+      break;
+    case 'bio_pending_paid':
+      message = t('status.msgBioPendingPay',L);
+      actionButtons = `<button class="btn btn-blue" onclick="openBtcScreen()">₿ ${t('status.payNowBtn',L)}</button>`;
+      break;
+    case 'pending_payment_review':
+      message = '';
+      actionButtons = `<div class="btc-pending-card">
+        <div class="btc-pending-title">${t('status.btcPendingTitle',L)}</div>
+        <div class="btc-pending-msg">${t('status.btcPendingMsg',L)}</div>
+      </div>`;
+      break;
+    case 'payment_failed':
+      message = t('status.btcFailed',L);
+      actionButtons = `<button class="btn btn-blue" onclick="openBtcScreen()">₿ ${t('status.payNowBtn',L)}</button>`;
+      break;
+    case 'under_review':
+      message = t('status.msgUnderReview',L);
+      break;
+    case 'approved':
+      message = `${t('status.msgApproved',L)} ${d.deliveryAddress || '—'}`;
+      actionButtons = `<button class="btn btn-blue" id="downloadVisaBtn" onclick="downloadVisa()">📄 ${t('status.downloadVisaBtn',L)}</button>`;
+      break;
+    case 'denied':
+      message = t('status.msgDenied',L);
+      break;
+  }
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="result-card">
+      <div class="result-head">
+        <div>
+          <div class="result-ref">Reference: ${d.ref}</div>
+          <div class="result-name">${d.fullName||'Applicant'}</div>
+        </div>
+        <span class="status-pill ${STATUS_BADGE_CLASS[combined]}">${STATUS_LABELS[combined] || combined}</span>
+      </div>
+      <p style="font-size:14px;line-height:1.6;margin:18px 0;padding:14px 16px;background:var(--offwhite);border-radius:8px">${message}</p>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="dl">${t('status.visaCategory',L)}</div><div class="dv">${d.visaType||'—'}</div></div>
+        <div class="detail-item"><div class="dl">${t('status.submitted',L)}</div><div class="dv">${d.createdAt? new Date(d.createdAt.seconds*1000).toLocaleDateString() : '—'}</div></div>
+        <div class="detail-item"><div class="dl">${t('status.feeStatus',L)}</div><div class="dv">${d.feePaid?'✅ '+t('status.paid',L):'⏳ '+t('status.pending',L)}</div></div>
+        <div class="detail-item"><div class="dl">${t('status.bioStatus',L)}</div><div class="dv">${d.biometricScheduled?'✅ '+t('status.scheduled',L):'⏳ '+t('status.notScheduled',L)}</div></div>
+      </div>
+      <div class="actions-row">
+        ${actionButtons}
+        <a href="index.html" class="btn btn-outline">${t('status.homeBtn',L)}</a>
+      </div>
+    </div>
+  `;
+}
+
+window.downloadVisa = async function(){
+  if(!currentResultData) return;
+  const btn = document.getElementById('downloadVisaBtn');
+  const L = getCurrentLang();
+  if(btn){ btn.disabled = true; btn.textContent = '...'; }
+  try{
+    let elements = null;
+    try{
+      const layoutSnap = await getDoc(doc(db,'settings','visaLayout'));
+      if(layoutSnap.exists() && Array.isArray(layoutSnap.data().elements)) elements = layoutSnap.data().elements;
+    } catch(e){ /* use built-in defaults */ }
+    await generateVisaPDF(currentResultData, elements);
+  } catch(e){
+    alert('Could not generate the document. Please try again.');
+  }
+  if(btn){ btn.disabled = false; btn.textContent = '📄 '+t('status.downloadVisaBtn',L); }
+};
+
+// ===== BTC PAYMENT FLOW =====
+window.openBtcScreen = async function(){
+  if(!currentResultData) return;
+  if(currentResultData.feePaid){ return; } // already paid — button shouldn't be visible but guard anyway
+  const L = getCurrentLang();
+  await settingsReady;
+  const visa = currentResultData.visaType || 'B1B2';
+  const fee = FEES[visa] || 185;
+  // Populate all text from translations
+  document.getElementById('btcTitle').textContent = t('status.btcTitle',L);
+  document.getElementById('btcInstruction').textContent = t('status.btcInstruction',L);
+  document.getElementById('btcWarning').textContent = t('status.btcWarning',L);
+  document.getElementById('btcAmountLabel').textContent = t('status.btcAmount',L);
+  document.getElementById('btcAddressLabel').textContent = t('status.btcAddress',L);
+  document.getElementById('btcAmountVal').textContent = `$${fee} USD`;
+  document.getElementById('btcAddrVal').textContent = BTC_WALLET || '(wallet not yet configured by admin)';
+  document.getElementById('btcCopyBtn').textContent = t('status.btcCopy',L);
+  document.getElementById('btcCopyBtn').classList.remove('copied');
+  document.getElementById('btcPaidBtn').textContent = t('status.btcPaidBtn',L);
+  document.getElementById('btcPaidBtn').disabled = false;
+  document.getElementById('btcScreen').classList.add('open');
+};
+
+window.closeBtcScreen = function(){
+  document.getElementById('btcScreen').classList.remove('open');
+};
+
+window.copyBtcAddress = function(){
+  const addr = document.getElementById('btcAddrVal').textContent;
+  navigator.clipboard.writeText(addr).catch(()=>{});
+  const btn = document.getElementById('btcCopyBtn');
+  const L = getCurrentLang();
+  btn.textContent = t('status.btcCopied',L);
+  btn.classList.add('copied');
+  setTimeout(()=>{ btn.textContent = t('status.btcCopy',L); btn.classList.remove('copied'); }, 2000);
+};
+
+window.submitBtcPayment = async function(){
+  if(!currentResultData) return;
+  const L = getCurrentLang();
+  const btn = document.getElementById('btcPaidBtn');
+  btn.disabled = true; btn.textContent = '...';
+  try{
+    await setDoc(doc(db,'visa_applications',currentResultData.ref),{
+      paymentStatus:'pending_review',
+      paymentMethod:'BTC',
+      paymentNotifiedAt:serverTimestamp(),
+      updatedAt:serverTimestamp()
+    },{merge:true});
+    closeBtcScreen();
+    searchApp(); // re-render status card with new pending_payment_review state
+  } catch(e){
+    btn.disabled = false;
+    btn.textContent = t('status.btcPaidBtn',L);
+    alert('Could not submit. Please check your connection and try again.');
+  }
+};
+
+// Close BTC screen when tapping the dark overlay (not the card itself)
+document.getElementById('btcScreen').addEventListener('click', function(e){
+  if(e.target === this) closeBtcScreen();
+});
+
+// Detect/apply language first, then auto-search if ref in URL
+const urlRef = new URLSearchParams(window.location.search).get('ref');
+const urlPay = new URLSearchParams(window.location.search).get('pay');
+if(urlRef) document.getElementById('refInput').value = urlRef;
+
+initI18n().then(async ()=>{
+  if(urlRef){
+    await searchApp();
+    if(urlPay==='1') openBtcScreen();
+  }
+});
+
+document.getElementById('refInput').addEventListener('keydown', e=>{ if(e.key==='Enter') searchApp(); });
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="visa-pdf.js"></script>
+
+<!-- BTC Payment slide-in screen -->
+<div class="btc-screen" id="btcScreen">
+  <div class="btc-card" id="btcCard">
+    <div class="btc-handle"></div>
+    <div class="btc-title" id="btcTitle"></div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px" id="btcInstruction"></p>
+    <div class="btc-warning" id="btcWarning"></div>
+    <div class="btc-box">
+      <div class="btc-box-label" id="btcAmountLabel"></div>
+      <div class="btc-amount-val" id="btcAmountVal"></div>
+    </div>
+    <div class="btc-box">
+      <div class="btc-box-label" id="btcAddressLabel"></div>
+      <div class="btc-addr" id="btcAddrVal"></div>
+      <button class="btc-copy-btn" id="btcCopyBtn" onclick="copyBtcAddress()"></button>
+    </div>
+    <button class="btc-paid-btn" id="btcPaidBtn" onclick="submitBtcPayment()"></button>
+    <button class="btc-cancel-btn" onclick="closeBtcScreen()">✕ Cancel</button>
+  </div>
+</div>
+</body>
+</html>
