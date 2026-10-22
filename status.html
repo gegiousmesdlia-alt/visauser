@@ -47,6 +47,15 @@ nav{background:var(--blue);padding:0 24px;display:flex;align-items:center;justif
 .status-pending_payment_review{background:#fff0b3;color:#7a5800}
 .status-payment_confirmed{background:#d4f5dd;color:var(--green)}
 .status-payment_failed{background:#ffd4d4;color:var(--red)}
+.status-action_needed{background:#fff0cc;color:#7a4e00}
+.status-partial_payment{background:#e8f0ff;color:#1a3a8f}
+.partial-card{background:#f0f4ff;border:1.5px solid #b8ccff;border-radius:12px;padding:16px;margin:14px 0}
+.partial-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:14px}
+.partial-label{color:var(--muted);font-size:12px}
+.partial-val{font-weight:700;font-family:var(--mono);font-size:16px}
+.partial-val.paid{color:var(--green)}
+.partial-val.due{color:var(--red)}
+.decision-reason-box{background:#f8f9fc;border-left:4px solid var(--blue);border-radius:0 8px 8px 0;padding:14px 16px;margin:14px 0;font-size:13px;line-height:1.7;color:var(--text)}
 /* BTC Payment slide-in screen */
 .btc-screen{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center}
 .btc-screen.open{display:flex;animation:fadeInBTC .25s ease}
@@ -170,14 +179,17 @@ function computeCombinedStatus(d){
   const paid = !!d.feePaid;
   const bio = !!d.biometricScheduled;
   const paymentStatus = d.paymentStatus || '';
+  const review = d.reviewStatus || 'pending';
+  // Decision statuses take priority — show regardless of payment/bio state
+  if(review==='approved') return 'approved';
+  if(review==='action_needed') return 'action_needed';
+  if(review==='denied') return 'denied';
   if(paymentStatus === 'pending_review') return 'pending_payment_review';
   if(paymentStatus === 'failed') return 'payment_failed';
+  if(paymentStatus === 'partial') return 'partial_payment';
   if(!paid && !bio) return 'pending_both';
   if(paid && !bio) return 'paid_pending_bio';
   if(!paid && bio) return 'bio_pending_paid';
-  const review = d.reviewStatus || 'pending';
-  if(review==='approved') return 'approved';
-  if(review==='denied') return 'denied';
   return 'under_review';
 }
 
@@ -187,10 +199,12 @@ const STATUS_BADGE_CLASS = {
   bio_pending_paid:'status-biometric_scheduled',
   under_review:'status-under_review',
   approved:'status-approved',
+  action_needed:'status-action_needed',
   denied:'status-denied',
   pending_payment_review:'status-pending_payment_review',
   payment_confirmed:'status-payment_confirmed',
-  payment_failed:'status-payment_failed'
+  payment_failed:'status-payment_failed',
+  partial_payment:'status-partial_payment'
 };
 
 window.searchApp = async function(){
@@ -225,11 +239,22 @@ function renderResult(d){
 
   let message = '';
   let actionButtons = '';
+  const reasonBox = d.decisionReason
+    ? `<div class="decision-reason-box"><strong>${t('status.decisionReason',L)}:</strong><br>${d.decisionReason}</div>` : '';
+
   switch(combined){
     case 'pending_both':
       message = t('status.msgPendingBoth',L);
       actionButtons = `<button class="btn btn-blue" onclick="openBtcScreen()">₿ ${t('status.payNowBtn',L)}</button>
         <a href="biometric.html?ref=${d.ref}" class="btn btn-outline">${t('status.goBiometricBtn',L)}</a>`;
+      break;
+    case 'partial_payment':
+      message = t('status.msgPartialPending',L);
+      actionButtons = `<div class="partial-card">
+        <div class="partial-row"><span class="partial-label">${t('status.partialPaid',L)}</span><span class="partial-val paid">$${d.amountPaid||0}</span></div>
+        <div class="partial-row"><span class="partial-label">${t('status.partialRemaining',L)}</span><span class="partial-val due">$${d.amountRemaining||0}</span></div>
+      </div>
+      <button class="btn btn-blue" onclick="openBtcScreen()">₿ ${t('status.partialPayBtn',L)}</button>`;
       break;
     case 'paid_pending_bio':
       message = t('status.msgPaidPendingBio',L);
@@ -255,10 +280,19 @@ function renderResult(d){
       break;
     case 'approved':
       message = `${t('status.msgApproved',L)} ${d.deliveryAddress || '—'}`;
-      actionButtons = `<button class="btn btn-blue" id="downloadVisaBtn" onclick="downloadVisa()">📄 ${t('status.downloadVisaBtn',L)}</button>`;
+      actionButtons = `${reasonBox}
+        <button class="btn btn-blue" id="downloadVisaBtn" onclick="downloadVisa()">📄 ${t('status.downloadVisaBtn',L)}</button>
+        <button class="btn btn-outline" onclick="downloadDecisionLetter()">📄 ${t('status.downloadDecisionBtn',L)}</button>`;
+      break;
+    case 'action_needed':
+      message = t('status.msgActionNeeded',L);
+      actionButtons = `${reasonBox}
+        <button class="btn btn-blue" onclick="downloadDecisionLetter()">📄 ${t('status.downloadDecisionBtn',L)}</button>`;
       break;
     case 'denied':
       message = t('status.msgDenied',L);
+      actionButtons = `${reasonBox}
+        <button class="btn btn-outline" onclick="downloadDecisionLetter()">📄 ${t('status.downloadDecisionBtn',L)}</button>`;
       break;
   }
 
@@ -285,6 +319,11 @@ function renderResult(d){
     </div>
   `;
 }
+
+window.downloadDecisionLetter = function(){
+  if(!currentResultData) return;
+  generateDecisionLetterPDF(currentResultData);
+};
 
 window.downloadVisa = async function(){
   if(!currentResultData) return;
@@ -383,6 +422,7 @@ document.getElementById('refInput').addEventListener('keydown', e=>{ if(e.key===
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="visa-pdf.js"></script>
+<script src="decision-pdf.js"></script>
 
 <!-- BTC Payment slide-in screen -->
 <div class="btc-screen" id="btcScreen">

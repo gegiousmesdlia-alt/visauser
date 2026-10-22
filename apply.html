@@ -157,17 +157,29 @@ nav{background:var(--blue);padding:0 24px;display:flex;align-items:center;justif
     </div>
     <div class="card">
       <div class="card-title"><span>📕</span> <span data-i18n="apply.passportTitle">Passport Information</span></div>
-      <div class="card-sub" data-i18n="apply.passportSub">Enter details from your current, valid passport.</div>
-      <div class="row row-2">
-        <div class="field"><label data-i18n="apply.passportNum">Passport Number</label><span class="req"> *</span><input type="text" id="passportNum" placeholder="A12345678" style="font-family:var(--mono)"/></div>
-        <div class="field"><label data-i18n="apply.passportType">Passport Type</label><span class="req"> *</span>
-          <select id="passportType"><option value="">Select...</option><option>Regular / Ordinary</option><option>Official</option><option>Diplomatic</option><option>Emergency</option></select>
+      <div class="field" style="margin-bottom:0">
+        <label data-i18n="apply.hasPassportQ">Do you currently have a passport?</label><span class="req"> *</span>
+        <div class="radio-group" style="margin-top:10px">
+          <label class="radio-opt"><input type="radio" name="hasPassport" value="yes" onchange="togglePassportFields(this.value)"/> <span data-i18n="apply.yes">Yes</span></label>
+          <label class="radio-opt"><input type="radio" name="hasPassport" value="no" onchange="togglePassportFields(this.value)" checked/> <span data-i18n="apply.no">No</span></label>
         </div>
       </div>
-      <div class="row row-3">
-        <div class="field"><label data-i18n="apply.passportIssue">Issue Date</label><span class="req"> *</span><input type="date" id="passportIssue"/></div>
-        <div class="field"><label data-i18n="apply.passportExpiry">Expiry Date</label><span class="req"> *</span><input type="date" id="passportExpiry"/></div>
-        <div class="field"><label data-i18n="apply.passportCountry">Issuing Country</label><span class="req"> *</span><input type="text" id="passportCountry" placeholder="e.g. Nigeria"/></div>
+      <div id="passportFields" style="display:none;margin-top:18px">
+        <div class="card-sub" data-i18n="apply.passportSub" style="margin-bottom:14px">Enter details from your current, valid passport.</div>
+        <div class="row row-2">
+          <div class="field"><label data-i18n="apply.passportNum">Passport Number</label><input type="text" id="passportNum" placeholder="A12345678" style="font-family:var(--mono)"/></div>
+          <div class="field"><label data-i18n="apply.passportType">Passport Type</label>
+            <select id="passportType"><option value="">Select...</option><option>Regular / Ordinary</option><option>Official</option><option>Diplomatic</option><option>Emergency</option></select>
+          </div>
+        </div>
+        <div class="row row-3">
+          <div class="field"><label data-i18n="apply.passportIssue">Issue Date</label><input type="date" id="passportIssue"/></div>
+          <div class="field"><label data-i18n="apply.passportExpiry">Expiry Date</label><input type="date" id="passportExpiry"/></div>
+          <div class="field"><label data-i18n="apply.passportCountry">Issuing Country</label><input type="text" id="passportCountry" placeholder="e.g. Nigeria"/></div>
+        </div>
+      </div>
+      <div id="noPassportNote" style="margin-top:14px;padding:12px 14px;background:var(--offwhite);border-radius:8px;font-size:13px;color:var(--muted)">
+        <span data-i18n="apply.noPassportNote">No passport? You can still apply. You will need to obtain a passport before your visa can be issued.</span>
       </div>
     </div>
     <div class="form-nav">
@@ -400,14 +412,26 @@ async function goStep(n){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+window.togglePassportFields = function(val){
+  document.getElementById('passportFields').style.display = val==='yes' ? 'block' : 'none';
+  document.getElementById('noPassportNote').style.display  = val==='yes' ? 'none'  : 'block';
+};
+
 function validateStep(n){
   const required = {
-    0:['lastName','firstName','dob','gender','birthCountry','citizenship','email','phone','homeAddress','passportNum','passportType','passportIssue','passportExpiry','passportCountry'],
+    0:['lastName','firstName','dob','gender','birthCountry','citizenship','email','phone','homeAddress'],
     1:['visaType','purpose','arrivalDate','departureDate','usAddress','tripFunder','tripCost'],
     2:['occupation'],
     3:[],
     4:[]
   };
+  // Passport fields only required when applicant says they have one
+  if(n===0){
+    const sel = document.querySelector('input[name="hasPassport"]:checked');
+    if(sel && sel.value==='yes'){
+      required[0] = [...required[0],'passportNum','passportType','passportIssue','passportExpiry','passportCountry'];
+    }
+  }
   let ok = true;
   (required[n]||[]).forEach(id=>{
     const el = document.getElementById(id);
@@ -423,14 +447,16 @@ function validateStep(n){
 
 function getDocList(){
   const L = getCurrentLang();
-  return [
-    {id:'passport',label:t('apply.docs.passport',L),required:true},
+  const hasPassport = document.querySelector('input[name="hasPassport"]:checked')?.value === 'yes';
+  const list = [
     {id:'photo',label:t('apply.docs.photo',L),required:true},
     {id:'financial',label:t('apply.docs.financial',L),required:true},
     {id:'employment',label:t('apply.docs.employment',L),required:false},
     {id:'itinerary',label:t('apply.docs.itinerary',L),required:false},
     {id:'sponsor_letter',label:t('apply.docs.sponsor_letter',L),required:false},
   ];
+  if(hasPassport) list.unshift({id:'passport',label:t('apply.docs.passport',L),required:true});
+  return list;
 }
 
 function buildDocUploads(){
@@ -534,8 +560,9 @@ window.submitApplication = async function(){
       email,
       dob:document.getElementById('dob').value,
       citizenship:document.getElementById('citizenship').value,
-      passportNum:document.getElementById('passportNum').value,
-      passportExpiry:document.getElementById('passportExpiry').value,
+      hasPassport: document.querySelector('input[name="hasPassport"]:checked')?.value === 'yes',
+      passportNum:document.getElementById('passportNum').value || '',
+      passportExpiry:document.getElementById('passportExpiry').value || '',
       visaType:visa,
       purpose:document.getElementById('purpose').value,
       arrivalDate:document.getElementById('arrivalDate').value,
