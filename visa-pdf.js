@@ -204,7 +204,6 @@ window.generateVisaPDF = async function(d, elementsOverride){
   );
   docPdf.text(introLines, 50, y+20);
 
-  tileWatermark(docPdf, 'SANDBOX — NOT FOR REAL USE');
   disclaimerBlock(docPdf, docPdf.internal.pageSize.getHeight()-90);
 
   // ===== PAGE 2: admin-customizable details page =====
@@ -240,9 +239,7 @@ window.generateVisaPDF = async function(d, elementsOverride){
   docPdf.setTextColor(90,100,128);
   docPdf.text('Annotation: Issued for demonstration purposes as part of a student web development contest submission.', 60, 500, {maxWidth: pageWidth-160});
 
-  // Fixed safety backstop — always renders on top, not editable via the Layout Editor,
-  // regardless of what elements admin has placed underneath.
-  tileWatermark(docPdf, 'SANDBOX — NOT FOR REAL USE');
+  // Fixed safety backstop — disclaimer always renders on top regardless of element placement
   disclaimerBlock(docPdf, 580);
 
   docPdf.save(`Visa_Approval_${d.ref || 'sandbox'}.pdf`);

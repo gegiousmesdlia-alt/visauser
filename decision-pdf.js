@@ -286,7 +286,6 @@ window.generateDecisionLetterPDF = function(d){
     doc.text(`Status: ${decisionConfig.label}`, W-170, y);
   }
 
-  tileWatermark();
   sandboxFooter(1);
 
   // ── PAGE 2: Summary & Rights ─────────────────────────────
@@ -348,7 +347,6 @@ window.generateDecisionLetterPDF = function(d){
   const noticeLines = doc.splitTextToSize(notice, W-120);
   doc.text(noticeLines, 60, y2+30);
 
-  tileWatermark();
   sandboxFooter(2);
 
   doc.save(`Decision_Letter_${d.ref||'sandbox'}.pdf`);
