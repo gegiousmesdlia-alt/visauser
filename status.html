@@ -75,6 +75,17 @@ nav{background:var(--blue);padding:0 24px;display:flex;align-items:center;justif
 .btc-paid-btn:active{transform:scale(.98)}
 .btc-paid-btn:disabled{background:#aaa;cursor:not-allowed}
 .btc-cancel-btn{width:100%;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:8px}
+/* Language picker sheet */
+.lang-picker-screen{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;align-items:flex-end;justify-content:center}
+.lang-picker-screen.open{display:flex;animation:fadeInBTC .2s ease}
+.lang-picker-card{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:24px 20px 36px;animation:slideUpBTC .3s cubic-bezier(.22,1,.36,1)}
+.lang-picker-handle{width:40px;height:4px;background:#e0e0e0;border-radius:4px;margin:0 auto 18px}
+.lang-picker-title{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--blue);margin-bottom:6px;text-align:center}
+.lang-picker-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px}
+.lang-picker-btns{display:flex;flex-direction:column;gap:10px}
+.lang-picker-btn{width:100%;padding:15px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .15s,border-color .15s}
+.lang-picker-btn:hover{background:var(--offwhite);border-color:var(--blue)}
+.lang-picker-btn .flag{font-size:22px}
 .btc-pending-card{background:#fff9e6;border:1.5px solid #C9A84C;border-radius:14px;padding:20px;text-align:center}
 .btc-pending-title{font-size:16px;font-weight:700;color:#7a5800;margin-bottom:8px}
 .btc-pending-msg{font-size:13px;color:#7a5800;line-height:1.6}
@@ -320,10 +331,53 @@ function renderResult(d){
   `;
 }
 
+// Available languages for the decision letter
+const LANG_OPTIONS = [
+  { code:'en', label:'English',    flag:'🇺🇸' },
+  { code:'pt', label:'Português',  flag:'🇧🇷' },
+  { code:'es', label:'Español',    flag:'🇪🇸' }
+];
+
 window.downloadDecisionLetter = function(){
   if(!currentResultData) return;
-  generateDecisionLetterPDF(currentResultData);
+  const enabled = currentResultData.decisionLetterLangs || ['en'];
+  const available = LANG_OPTIONS.filter(l => enabled.includes(l.code));
+  if(available.length <= 1){
+    // Only one language — download directly
+    generateDecisionLetterPDF(currentResultData, available[0]?.code || 'en');
+    return;
+  }
+  // Multiple languages — show picker
+  openLangPicker(available);
 };
+
+window.openLangPicker = function(available){
+  const L = getCurrentLang();
+  document.getElementById('langPickerTitle').textContent = t('status.downloadDecisionBtn',L);
+  document.getElementById('langPickerSub').textContent = 'Choose your language / Escolha seu idioma / Elija su idioma';
+  const btnsWrap = document.getElementById('langPickerBtns');
+  btnsWrap.innerHTML = available.map(l=>`
+    <button class="lang-picker-btn" onclick="downloadDecisionInLang('${l.code}')">
+      <span class="flag">${l.flag}</span>${l.label}
+    </button>
+  `).join('');
+  document.getElementById('langPickerScreen').classList.add('open');
+};
+
+window.closeLangPicker = function(){
+  document.getElementById('langPickerScreen').classList.remove('open');
+};
+
+window.downloadDecisionInLang = function(langCode){
+  closeLangPicker();
+  generateDecisionLetterPDF(currentResultData, langCode);
+};
+
+// Close picker on overlay tap
+document.addEventListener('DOMContentLoaded', ()=>{
+  const screen = document.getElementById('langPickerScreen');
+  if(screen) screen.addEventListener('click', function(e){ if(e.target===this) closeLangPicker(); });
+});
 
 window.downloadVisa = async function(){
   if(!currentResultData) return;
@@ -423,6 +477,17 @@ document.getElementById('refInput').addEventListener('keydown', e=>{ if(e.key===
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="visa-pdf.js"></script>
 <script src="decision-pdf.js"></script>
+
+<!-- Language picker sheet for decision letter -->
+<div class="lang-picker-screen" id="langPickerScreen">
+  <div class="lang-picker-card">
+    <div class="lang-picker-handle"></div>
+    <div class="lang-picker-title" id="langPickerTitle">Download Decision Letter</div>
+    <div class="lang-picker-sub" id="langPickerSub">Select a language</div>
+    <div class="lang-picker-btns" id="langPickerBtns"></div>
+    <button class="btc-cancel-btn" style="margin-top:14px" onclick="closeLangPicker()">✕ Cancel</button>
+  </div>
+</div>
 
 <!-- BTC Payment slide-in screen -->
 <div class="btc-screen" id="btcScreen">
